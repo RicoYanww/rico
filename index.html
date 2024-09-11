@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Page with Iframe and File Upload</title>
+    <style>
+        /* 原有的样式保持不变 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .iframe-container {
+            flex: 98;
+            background-color: #f4f4f4;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .form-container-wrapper {
+            flex: 2;
+            background-color: #ffffff;
+            padding: 5px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            width: 36%;
+        }
+
+        .form-container-wrapper .container {
+            display: flex;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .form-container {
+            border: 1px solid #ccc;
+            padding: 2px;
+            border-radius: 8px;
+            background-color: white;
+            width: 48%;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 1px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input[type="file"],
+        input[type="number"],
+        button {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 2px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        h2 {
+            margin-bottom: 5px;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
+</head>
+
+<body>
+    <div class="iframe-container">
+        <iframe src="http://172.168.1.10:8675"></iframe>
+    </div>
+
+    <div class="form-container-wrapper">
+        <div class="container">
+            <div class="form-container">
+                <h2>TXT 文件处理</h2>
+                <form id="txtForm">
+                    <label for="txtFile">选择 TXT 文件</label>
+                    <input type="file" id="txtFile" accept=".txt" required>
+
+                    <label for="x_panning">X 平移参数</label>
+                    <input type="number" id="x_panning" placeholder="输入 X 平移参数" required>
+
+                    <label for="y_panning">Y 平移参数</label>
+                    <input type="number" id="y_panning" placeholder="输入 Y 平移参数" required>
+
+                    <button type="submit">计算并下载结果</button>
+                </form>
+            </div>
+
+            <div class="form-container">
+                <h2>处理 PCD 文件</h2>
+                <form id="pcdForm">
+                    <input type="file" id="pcdFile" accept=".pcd" required>
+                    <button type="submit">计算并下载结果</button>
+                </form>
+            </div>
+
+            <!-- <div id="log"></div> -->
+        </div>
+    </div>
+
+    <script>
+    
+        let T;
+
+        document.getElementById('txtForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const txtFile = document.getElementById('txtFile').files[0];
+            const xPanning = parseFloat(document.getElementById('x_panning').value);
+            const yPanning = parseFloat(document.getElementById('y_panning').value);
+
+            if (txtFile) {
+                const reader = new FileReader();
+
+                reader.onload = function (e) {
+                    const content = e.target.result.split('\n');
+                    let P1 = [], P2 = [];
+                    let section = '';
+
+                    content.forEach(line => {
+                        line = line.trim();
+                        if (line === '[lidar]') {
+                            section = 'lidar';
+                        } else if (line === '[gps]') {
+                            section = 'gps';
+                        } else if (line) {
+                            const coords = line.split(',').map(parseFloat);
+                            if (section === 'lidar') {
+                                P1.push([coords[2], coords[1], coords[0]]);
+                            } else if (section === 'gps') {
+                                P2.push([coords[0], coords[1], coords[2]]);
+                            }
+                        }
+                    });
+
+                    P2 = P2.map(point => [point[0] - xPanning, point[1] - yPanning, point[2]]);
+
+                    const centroid_P1 = numeric.div(numeric.add.apply(null, P1), P1.length);
+                    const centroid_P2 = numeric.div(numeric.add.apply(null, P2), P2.length);
+
+                    const P1_centered = P1.map(point => numeric.sub(point, centroid_P1));
+                    const P2_centered = P2.map(point => numeric.sub(point, centroid_P2));
+
+                    const H_array = numeric.dot(numeric.transpose(P1_centered), P2_centered);
+
+                    const svdResult = numeric.svd(H_array);
+
+                    let U = numeric.clone(svdResult.U);
+                    let V = numeric.clone(svdResult.V);
+
+                    let R = numeric.dot(V, numeric.transpose(U));
+
+                    const det_R = numeric.det(R);
+
+                    if (det_R < 0) {
+                        V[2] = numeric.mul(V[2], -1);
+                        R = numeric.dot(V, numeric.transpose(U));
+                    }
+
+                    const t = numeric.sub(centroid_P2, numeric.dot(R, centroid_P1));
+
+                    T = [
+                        R[0].concat(t[0]),
+                        R[1].concat(t[1]),
+                        R[2].concat(t[2]),
+                        [0, 0, 0, 1]
+                    ];
+
+                    const blob = new Blob([formatMatrix(T)], { type: 'text/plain' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'transformation_matrix.txt';
+                    link.click();
+
+                    alert('变换矩阵已计算并下载。您现在可以处理 PCD 文件了。');
+                };
+
+                reader.readAsText(txtFile);
+            } else {
+                console.error('No file selected or file is not valid');
+            }
+        });
+
+        function formatMatrix(matrix) {
+            return matrix.map(row => row.map(value => value.toFixed(10)).join('\t')).join('\n');
+        }
+
+        // 处理点云数据
+        // function log(message) {
+        //     document.getElementById('log').textContent += message + '\n';
+        //     console.log(message);
+        // }
+
+        document.getElementById('pcdForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const file = document.getElementById('pcdFile').files[0];
+            if (file) {
+                processFile(file);
+            }
+        });
+
+        function processFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    const lines = content.split('\n');
+                    let dataStartIndex = lines.findIndex(line => line.trim() === 'DATA ascii') + 1;
+                    
+                    if (dataStartIndex === 0) {
+                        throw new Error('Unsupported PCD format. Only ASCII format is supported.');
+                    }
+
+                    let xyz = lines.slice(dataStartIndex)
+                        .map(line => {
+                            const values = line.trim().split(' ');
+                            return values.slice(0, 3).map(v => parseFloat(v));
+                        })
+                        .filter(point => point.length === 3 && !point.some(isNaN));
+
+                    // log(`Processed ${xyz.length} points`);
+
+                    // Swap x and z coordinates
+                    xyz = xyz.map(point => [point[2], point[1], point[0]]);
+
+                    const m = xyz.length;
+                    const column_3 = Array(m).fill(1);
+
+                    const homogeneous_points = xyz.map((point, i) => [...point, column_3[i]]);
+
+                    // Define the transformation matrix T
+                    const T = [
+                        [0.1297368076, -0.9914101603, -0.0165606417, 58.7185577173],
+                        [0.9915356569, 0.1298019305, -0.0029154691, 42.3412972973],
+                        [0.0050400289, -0.0160422231, 0.9998586126, 12.1242026423],
+                        [0.0000000000, 0.0000000000, 0.0000000000, 1.0000000000]
+                    ];
+
+                    // log('Applying transformation...');
+                    const transformed_points = math.multiply(T, math.transpose(homogeneous_points));
+                    // log('Transformation applied');
+                    // log(`Transformed points shape: ${transformed_points.length} x ${transformed_points[0].length}`);
+
+                    let final_points = [];
+                    for (let i = 0; i < transformed_points[0].length; i++) {
+                        final_points.push([
+                            transformed_points[0][i],
+                            transformed_points[1][i],
+                            transformed_points[2][i]
+                        ]);
+                    }
+
+                    // log(`Generated ${final_points.length} transformed points`);
+
+                    if (final_points.length !== xyz.length) {
+                        throw new Error(`Point count mismatch: Input ${xyz.length}, Output ${final_points.length}`);
+                    }
+
+                    const outputPCD = generatePCD(final_points);
+                    downloadPCD(outputPCD, 'transformed_points.pcd');
+                    // log('PCD file generated and ready for download');
+                } catch (error) {
+                    // log('Error: ' + error.message);
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function generatePCD(points) {
+            if (!Array.isArray(points) || points.length === 0) {
+                throw new Error('Invalid points data');
+            }
+
+            const header = `# This PCD file was generated using a web-based PCD processor.
+# .PCD v.7 - Point Cloud Data file format
+VERSION .7
+FIELDS x y z
+SIZE 4 4 4
+TYPE F F F
+COUNT 1 1 1
+WIDTH ${points.length}
+HEIGHT 1
+VIEWPOINT 0 0 0 1 0 0 0
+POINTS ${points.length}
+DATA ascii
+`;
+            const pointsData = points.map(p => {
+                if (!Array.isArray(p) || p.length < 3) {
+                    throw new Error('Invalid point data');
+                }
+                return p.slice(0, 3).map(coord => coord.toFixed(6)).join(' ');
+            }).join('\n');
+            return header + pointsData;
+        }
+
+        function downloadPCD(content, fileName) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+    </script>
+</body>
+
+</html>
