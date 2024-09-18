@@ -8,13 +8,15 @@
     <style>
         /* 原有的样式保持不变 */
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            /* font-family: 'SimSun', 'Songti SC', '宋体', serif; 设置为宋体 */
             margin: 0;
             padding: 0;
             height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            background-color: #000000
         }
 
         .iframe-container {
@@ -30,10 +32,11 @@
 
         .form-container-wrapper {
             flex: 2;
-            background-color: #ffffff;
+            background-color: #000000;
+            /* 更改为与表单容器相同的深色 */
             padding: 5px;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-            width: 36%;
+            box-shadow: 0 -2px 10px rgba(255, 255, 255, 0.1);
+            width: 60%;
         }
 
         .form-container-wrapper .container {
@@ -43,11 +46,12 @@
         }
 
         .form-container {
-            border: 1px solid #ccc;
+            border: 1px solid #333333;
             padding: 2px;
             border-radius: 8px;
-            background-color: white;
-            width: 48%;
+            background-color: #27282E;
+            /* 保持原有的深色背景 */
+            width: 32%;
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
             box-sizing: border-box;
         }
@@ -57,6 +61,8 @@
             margin-bottom: 1px;
             font-weight: bold;
             font-size: 14px;
+            color: #C4C5C7;
+            /* 调整标签颜色 */
         }
 
         input[type="file"],
@@ -65,26 +71,36 @@
             width: 100%;
             padding: 5px;
             margin-bottom: 2px;
-            border: 1px solid #ccc;
+            border: 1px solid #444444;
+            /* 调整边框颜色 */
             border-radius: 4px;
             box-sizing: border-box;
+            background-color: #333333;
+            /* 调整输入框背景色 */
+            color: #C4C5C7;
+            /* 调整输入文字颜色 */
         }
 
         button {
-            background-color: #28a745;
+            background-color: #0057FF;
+            border-radius: 4px;
             color: white;
             cursor: pointer;
             transition: background-color 0.3s;
         }
 
         button:hover {
-            background-color: #218838;
+            background-color: #064cd8;
+            /* 保持原有悬停颜色 */
         }
 
         h2 {
+            font-family: 'Arial', 'Helvetica', sans-serif;
             margin-bottom: 5px;
             font-size: 14px;
             text-align: center;
+            color: #C4C5C7;
+            /* 调整标题颜色 */
         }
     </style>
 
@@ -100,7 +116,7 @@
     <div class="form-container-wrapper">
         <div class="container">
             <div class="form-container">
-                <h2>TXT 文件处理</h2>
+                <h2>计算刚性变换矩阵</h2>
                 <form id="txtForm">
                     <label for="txtFile">选择 TXT 文件</label>
                     <input type="file" id="txtFile" accept=".txt" required>
@@ -116,9 +132,32 @@
             </div>
 
             <div class="form-container">
-                <h2>处理 PCD 文件</h2>
+                <h2>运用刚性变换矩阵</h2>
                 <form id="pcdForm">
+                    <label for="pcdFile">选择 PCD 文件</label>
                     <input type="file" id="pcdFile" accept=".pcd" required>
+                    <button type="submit">计算并下载结果</button>
+                </form>
+            </div>
+
+            <div class="form-container">
+                <h2>误差修正</h2>
+                <form id="errorCorrectionForm">
+                    <label for="errorCorrectionFile">选择误差修正文件</label>
+                    <input type="file" id="errorCorrectionFile" accept=".txt" required>
+
+                    <label for="pcdFile1">选择第一个处理后的 PCD 文件</label>
+                    <input type="file" id="pcdFile1" accept=".pcd" required>
+
+                    <label for="pcdFile2">选择第二个处理后的 PCD 文件</label>
+                    <input type="file" id="pcdFile2" accept=".pcd" required>
+
+                    <label for="matrix1File">选择第一个矩阵文件</label>
+                    <input type="file" id="matrix1File" accept=".txt" required>
+
+                    <label for="matrix2File">选择第二个矩阵文件</label>
+                    <input type="file" id="matrix2File" accept=".txt" required>
+
                     <button type="submit">计算并下载结果</button>
                 </form>
             </div>
@@ -128,15 +167,16 @@
     </div>
 
     <script>
-    
+
         let T;
+        let xPanning, yPanning;
 
         document.getElementById('txtForm').addEventListener('submit', function (event) {
             event.preventDefault();
 
             const txtFile = document.getElementById('txtFile').files[0];
-            const xPanning = parseFloat(document.getElementById('x_panning').value);
-            const yPanning = parseFloat(document.getElementById('y_panning').value);
+            xPanning = parseFloat(document.getElementById('x_panning').value);
+            yPanning = parseFloat(document.getElementById('y_panning').value);
 
             if (txtFile) {
                 const reader = new FileReader();
@@ -220,7 +260,7 @@
         //     console.log(message);
         // }
 
-        document.getElementById('pcdForm').addEventListener('submit', function(e) {
+        document.getElementById('pcdForm').addEventListener('submit', function (e) {
             e.preventDefault();
             const file = document.getElementById('pcdFile').files[0];
             if (file) {
@@ -230,12 +270,12 @@
 
         function processFile(file) {
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 try {
                     const content = e.target.result;
                     const lines = content.split('\n');
                     let dataStartIndex = lines.findIndex(line => line.trim() === 'DATA ascii') + 1;
-                    
+
                     if (dataStartIndex === 0) {
                         throw new Error('Unsupported PCD format. Only ASCII format is supported.');
                     }
@@ -258,12 +298,12 @@
                     const homogeneous_points = xyz.map((point, i) => [...point, column_3[i]]);
 
                     // Define the transformation matrix T
-                    const T = [
-                        [0.1297368076, -0.9914101603, -0.0165606417, 58.7185577173],
-                        [0.9915356569, 0.1298019305, -0.0029154691, 42.3412972973],
-                        [0.0050400289, -0.0160422231, 0.9998586126, 12.1242026423],
-                        [0.0000000000, 0.0000000000, 0.0000000000, 1.0000000000]
-                    ];
+                    // const T = [
+                    //     [0.1297368076, -0.9914101603, -0.0165606417, 58.7185577173],
+                    //     [0.9915356569, 0.1298019305, -0.0029154691, 42.3412972973],
+                    //     [0.0050400289, -0.0160422231, 0.9998586126, 12.1242026423],
+                    //     [0.0000000000, 0.0000000000, 0.0000000000, 1.0000000000]
+                    // ];
 
                     // log('Applying transformation...');
                     const transformed_points = math.multiply(T, math.transpose(homogeneous_points));
@@ -331,6 +371,247 @@ DATA ascii
             a.download = fileName;
             a.click();
             URL.revokeObjectURL(url);
+        }
+
+
+        // 误差修正表单的 JavaScript 代码
+
+        document.getElementById('errorCorrectionForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const errorCorrectionFile = document.getElementById('errorCorrectionFile').files[0];
+            const pcdFile1 = document.getElementById('pcdFile1').files[0];
+            const pcdFile2 = document.getElementById('pcdFile2').files[0];
+            const matrix1File = document.getElementById('matrix1File').files[0];
+            const matrix2File = document.getElementById('matrix2File').files[0];
+
+            if (errorCorrectionFile && pcdFile1 && pcdFile2 && matrix1File && matrix2File) {
+                if (xPanning !== undefined && yPanning !== undefined) {
+                    processErrorCorrection(errorCorrectionFile, pcdFile1, pcdFile2, matrix1File, matrix2File, xPanning, yPanning);
+                } else {
+                    alert('请先在计算刚性变换矩阵表单中输入 X 和 Y 平移参数。');
+                }
+            }
+        });
+
+        function processErrorCorrection(errorFile, pcd1, pcd2, matrix1, matrix2, x_panning, y_panning) {
+            const fileReaders = [
+                readFileAsText(errorFile),
+                readFileAsText(pcd1),
+                readFileAsText(pcd2),
+                readFileAsText(matrix1),
+                readFileAsText(matrix2)
+            ];
+
+            Promise.all(fileReaders).then(([errorData, pcd1Data, pcd2Data, matrix1Data, matrix2Data]) => {
+                const { lidar_01, lidar_02, NEZ } = parseErrorCorrectionFile(errorData);
+                const xyz_1 = parsePCDFile(pcd1Data);
+                const xyz_2 = parsePCDFile(pcd2Data);
+                const matrix_1 = parseMatrixFile(matrix1Data);
+                const matrix_2 = parseMatrixFile(matrix2Data);
+
+                const transformed_point_01 = transformPoint(lidar_01[0], matrix_1, x_panning, y_panning);
+                const transformed_point_02 = transformPoint(lidar_02[0], matrix_2, x_panning, y_panning);
+
+                const distance_01 = calculateDistance(NEZ[0], transformed_point_01);
+                const distance_02 = calculateDistance(NEZ[0], transformed_point_02);
+
+                let correctedData, mergedData;
+                if (distance_01 <= distance_02) {
+                    const panning = numeric.sub(transformed_point_01, transformed_point_02);
+                    correctedData = numeric.add(xyz_2, panning);
+                    mergedData = numeric.concat([xyz_1, correctedData]);
+                } else {
+                    const panning = numeric.sub(transformed_point_02, transformed_point_01);
+                    correctedData = numeric.add(xyz_1, panning);
+                    mergedData = numeric.concat([correctedData, xyz_2]);
+                }
+
+                downloadPCD(generatePCD(correctedData), 'corrected_data.pcd');
+                downloadPCD(generatePCD(mergedData), 'merged_data.pcd');
+            }).catch(error => {
+                console.error('Error processing files:', error);
+            });
+        }
+
+        // 读取文本文件
+        function readTextFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = event => resolve(event.target.result);
+                reader.onerror = error => reject(error);
+                reader.readAsText(file);
+            });
+        }
+
+        // 解析误差修正文件
+        function parseErrorCorrectionFile(data) {
+            const lines = data.split('\n');
+            let section = '';
+            const result = {
+                lidar_01: [],
+                lidar_02: [],
+                NEZ: []
+            };
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (line === '[lidar_01]') {
+                    section = 'lidar_01';
+                } else if (line === '[lidar_02]') {
+                    section = 'lidar_02';
+                } else if (line === '[NEZ]') {
+                    section = 'NEZ';
+                } else if (line && section) {
+                    const values = line.split(',').map(Number);
+                    result[section].push(values);
+                }
+            });
+
+            return result;
+        }
+
+        // 读取PCD文件
+        function readPCDFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = event => {
+                    const data = event.target.result;
+                    const lines = data.split('\n');
+                    const xyz = [];
+                    let dataStarted = false;
+
+                    lines.forEach(line => {
+                        if (line.startsWith('DATA ascii')) {
+                            dataStarted = true;
+                        } else if (dataStarted) {
+                            const values = line.trim().split(/\s+/).map(Number);
+                            if (values.length >= 3) {
+                                xyz.push(values.slice(0, 3));
+                            }
+                        }
+                    });
+
+                    resolve(xyz);
+                };
+                reader.onerror = error => reject(error);
+                reader.readAsText(file);
+            });
+        }
+
+        // 读取矩阵文件
+        function readMatrixFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = event => {
+                    const data = event.target.result;
+                    const matrix = data.trim().split('\n').map(line => line.trim().split(/\s+/).map(Number));
+                    resolve(matrix);
+                };
+                reader.onerror = error => reject(error);
+                reader.readAsText(file);
+            });
+        }
+
+        // 转换点坐标
+        function transformPoint(point, matrix, x_panning, y_panning) {
+            let [x, y, z] = point;
+            [x, z] = [z, x]; // 交换 x 和 z
+            const homogeneous = [x, y, z, 1];
+            const transformed = numeric.dot(matrix, homogeneous);
+            return [
+                transformed[0] + x_panning,
+                transformed[1] + y_panning,
+                transformed[2]
+            ];
+        }
+
+        // 计算距离
+        function calculateDistance(point1, point2) {
+            return Math.sqrt(
+                Math.pow(point1[0] - point2[0], 2) +
+                Math.pow(point1[1] - point2[1], 2) +
+                Math.pow(point1[2] - point2[2], 2)
+            );
+        }
+
+        // 生成PCD文件内容（改名）
+        function createPCDContent(points) {
+
+            if (!Array.isArray(points) || points.length === 0) {
+                throw new Error('无效的点数据');
+            }
+            const header = `# 此PCD文件由基于Web的PCD处理器生成。
+# .PCD v.7 - 点云数据文件格式
+VERSION .7
+FIELDS x y z
+SIZE 4 4 4
+TYPE F F F
+COUNT 1 1 1
+WIDTH ${points.length}
+HEIGHT 1
+VIEWPOINT 0 0 0 1 0 0 0
+POINTS ${points.length}
+DATA ascii
+`;
+
+            const pointsData = points.map(p => {
+                if (!Array.isArray(p) || p.length < 3) {
+                    throw new Error('无效的点数据');
+                }
+                return p.slice(0, 3).map(coord => coord.toFixed(6)).join(' ');
+            }).join('\n');
+            return header + pointsData;
+        }
+
+        // 下载PCD文件（改名）
+        function savePCDFile(content, filename) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 主处理函数（更新以使用新的函数名）
+        async function processErrorCorrection(errorFile, pcd1, pcd2, matrix1, matrix2, x_panning, y_panning) {
+            try {
+                const [errorData, xyz_1, xyz_2, matrix_1, matrix_2] = await Promise.all([
+                    readTextFile(errorFile),
+                    readPCDFile(pcd1),
+                    readPCDFile(pcd2),
+                    readMatrixFile(matrix1),
+                    readMatrixFile(matrix2)
+                ]);
+
+                const { lidar_01, lidar_02, NEZ } = parseErrorCorrectionFile(errorData);
+
+                const transformed_point_01 = transformPoint(lidar_01[0], matrix_1, x_panning, y_panning);
+                const transformed_point_02 = transformPoint(lidar_02[0], matrix_2, x_panning, y_panning);
+
+                const distance_01 = calculateDistance(NEZ[0], transformed_point_01);
+                const distance_02 = calculateDistance(NEZ[0], transformed_point_02);
+
+                let correctedData, mergedData;
+                if (distance_01 <= distance_02) {
+                    const panning = numeric.sub(transformed_point_01, transformed_point_02);
+                    correctedData = xyz_2.map(point => numeric.add(point, panning));
+                    mergedData = [...xyz_1, ...correctedData];
+                    savePCDFile(createPCDContent(correctedData), 'Corrected_data_s2.pcd');
+                } else {
+                    const panning = numeric.sub(transformed_point_02, transformed_point_01);
+                    correctedData = xyz_1.map(point => numeric.add(point, panning));
+                    mergedData = [...correctedData, ...xyz_2];
+                    savePCDFile(createPCDContent(correctedData), 'Corrected_data_s1.pcd');
+                }
+
+                savePCDFile(createPCDContent(mergedData), 'merge.pcd');
+            } catch (error) {
+                console.error('处理文件时出错:', error);
+            }
         }
 
     </script>
