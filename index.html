@@ -6,10 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Custom Page with Iframe and File Upload</title>
     <style>
-        /* 原有的样式保持不变 */
         body {
             font-family: 'Arial', 'Helvetica', sans-serif;
-            /* font-family: 'SimSun', 'Songti SC', '宋体', serif; 设置为宋体 */
             margin: 0;
             padding: 0;
             height: 100vh;
@@ -33,27 +31,34 @@
         .form-container-wrapper {
             flex: 2;
             background-color: #000000;
-            /* 更改为与表单容器相同的深色 */
             padding: 5px;
             box-shadow: 0 -2px 10px rgba(255, 255, 255, 0.1);
-            width: 60%;
         }
 
         .form-container-wrapper .container {
             display: flex;
             justify-content: space-between;
             height: 100%;
+            width: 80%;
         }
 
         .form-container {
+            width: 24%;
             border: 1px solid #333333;
             padding: 2px;
             border-radius: 8px;
             background-color: #27282E;
-            /* 保持原有的深色背景 */
-            width: 32%;
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
             box-sizing: border-box;
+        }
+
+        #errorDisplay {
+            margin-top: 10px;
+            padding: 5px;
+            background-color: #333333;
+            color: #C4C5C7;
+            border-radius: 4px;
+            font-size: 12px;
         }
 
         label {
@@ -62,7 +67,6 @@
             font-weight: bold;
             font-size: 14px;
             color: #C4C5C7;
-            /* 调整标签颜色 */
         }
 
         input[type="file"],
@@ -72,13 +76,10 @@
             padding: 5px;
             margin-bottom: 2px;
             border: 1px solid #444444;
-            /* 调整边框颜色 */
             border-radius: 4px;
             box-sizing: border-box;
             background-color: #333333;
-            /* 调整输入框背景色 */
             color: #C4C5C7;
-            /* 调整输入文字颜色 */
         }
 
         button {
@@ -91,7 +92,6 @@
 
         button:hover {
             background-color: #064cd8;
-            /* 保持原有悬停颜色 */
         }
 
         h2 {
@@ -100,7 +100,6 @@
             font-size: 14px;
             text-align: center;
             color: #C4C5C7;
-            /* 调整标题颜色 */
         }
     </style>
 
@@ -109,8 +108,13 @@
 </head>
 
 <body>
-    <div class="iframe-container">
+    <!-- <div class="iframe-container">
         <iframe src="http://172.168.1.10:8675"></iframe>
+    </div> -->
+
+    <!-- 第二种iframe -->
+    <div class="iframe-container">
+        <iframe id="dynamicIframe" src="about:blank"></iframe>
     </div>
 
     <div class="form-container-wrapper">
@@ -141,17 +145,22 @@
             </div>
 
             <div class="form-container">
-                <h2>误差修正</h2>
-                <form id="errorCorrectionForm">
+                <h2>误差修正 (1/2)</h2>
+                <form id="errorCorrectionForm1">
                     <label for="errorCorrectionFile">选择误差修正文件</label>
                     <input type="file" id="errorCorrectionFile" accept=".txt" required>
 
-                    <label for="pcdFile1">选择第一个处理后的 PCD 文件</label>
+                    <label for="pcdFile1">选择第一个 PCD 文件</label>
                     <input type="file" id="pcdFile1" accept=".pcd" required>
 
-                    <label for="pcdFile2">选择第二个处理后的 PCD 文件</label>
+                    <label for="pcdFile2">选择第二个 PCD 文件</label>
                     <input type="file" id="pcdFile2" accept=".pcd" required>
+                </form>
+            </div>
 
+            <div class="form-container">
+                <h2>误差修正 (2/2)</h2>
+                <form id="errorCorrectionForm2">
                     <label for="matrix1File">选择第一个矩阵文件</label>
                     <input type="file" id="matrix1File" accept=".txt" required>
 
@@ -160,10 +169,13 @@
 
                     <button type="submit">计算并下载结果</button>
                 </form>
+                <div id="errorDisplay"></div>
             </div>
-
-            <!-- <div id="log"></div> -->
         </div>
+    </div>
+
+    <!-- <div id="log"></div> -->
+    </div>
     </div>
 
     <script>
@@ -376,62 +388,62 @@ DATA ascii
 
         // 误差修正表单的 JavaScript 代码
 
-        document.getElementById('errorCorrectionForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            const errorCorrectionFile = document.getElementById('errorCorrectionFile').files[0];
-            const pcdFile1 = document.getElementById('pcdFile1').files[0];
-            const pcdFile2 = document.getElementById('pcdFile2').files[0];
-            const matrix1File = document.getElementById('matrix1File').files[0];
-            const matrix2File = document.getElementById('matrix2File').files[0];
+        // document.getElementById('errorCorrectionForm').addEventListener('submit', function (e) {
+        //     e.preventDefault();
+        //     const errorCorrectionFile = document.getElementById('errorCorrectionFile').files[0];
+        //     const pcdFile1 = document.getElementById('pcdFile1').files[0];
+        //     const pcdFile2 = document.getElementById('pcdFile2').files[0];
+        //     const matrix1File = document.getElementById('matrix1File').files[0];
+        //     const matrix2File = document.getElementById('matrix2File').files[0];
 
-            if (errorCorrectionFile && pcdFile1 && pcdFile2 && matrix1File && matrix2File) {
-                if (xPanning !== undefined && yPanning !== undefined) {
-                    processErrorCorrection(errorCorrectionFile, pcdFile1, pcdFile2, matrix1File, matrix2File, xPanning, yPanning);
-                } else {
-                    alert('请先在计算刚性变换矩阵表单中输入 X 和 Y 平移参数。');
-                }
-            }
-        });
+        //     if (errorCorrectionFile && pcdFile1 && pcdFile2 && matrix1File && matrix2File) {
+        //         if (xPanning !== undefined && yPanning !== undefined) {
+        //             processErrorCorrection(errorCorrectionFile, pcdFile1, pcdFile2, matrix1File, matrix2File, xPanning, yPanning);
+        //         } else {
+        //             alert('请先在计算刚性变换矩阵表单中输入 X 和 Y 平移参数。');
+        //         }
+        //     }
+        // });
 
-        function processErrorCorrection(errorFile, pcd1, pcd2, matrix1, matrix2, x_panning, y_panning) {
-            const fileReaders = [
-                readFileAsText(errorFile),
-                readFileAsText(pcd1),
-                readFileAsText(pcd2),
-                readFileAsText(matrix1),
-                readFileAsText(matrix2)
-            ];
+        // function processErrorCorrection(errorFile, pcd1, pcd2, matrix1, matrix2, x_panning, y_panning) {
+        //     const fileReaders = [
+        //         readFileAsText(errorFile),
+        //         readFileAsText(pcd1),
+        //         readFileAsText(pcd2),
+        //         readFileAsText(matrix1),
+        //         readFileAsText(matrix2)
+        //     ];
 
-            Promise.all(fileReaders).then(([errorData, pcd1Data, pcd2Data, matrix1Data, matrix2Data]) => {
-                const { lidar_01, lidar_02, NEZ } = parseErrorCorrectionFile(errorData);
-                const xyz_1 = parsePCDFile(pcd1Data);
-                const xyz_2 = parsePCDFile(pcd2Data);
-                const matrix_1 = parseMatrixFile(matrix1Data);
-                const matrix_2 = parseMatrixFile(matrix2Data);
+        //     Promise.all(fileReaders).then(([errorData, pcd1Data, pcd2Data, matrix1Data, matrix2Data]) => {
+        //         const { lidar_01, lidar_02, NEZ } = parseErrorCorrectionFile(errorData);
+        //         const xyz_1 = parsePCDFile(pcd1Data);
+        //         const xyz_2 = parsePCDFile(pcd2Data);
+        //         const matrix_1 = parseMatrixFile(matrix1Data);
+        //         const matrix_2 = parseMatrixFile(matrix2Data);
 
-                const transformed_point_01 = transformPoint(lidar_01[0], matrix_1, x_panning, y_panning);
-                const transformed_point_02 = transformPoint(lidar_02[0], matrix_2, x_panning, y_panning);
+        //         const transformed_point_01 = transformPoint(lidar_01[0], matrix_1, x_panning, y_panning);
+        //         const transformed_point_02 = transformPoint(lidar_02[0], matrix_2, x_panning, y_panning);
 
-                const distance_01 = calculateDistance(NEZ[0], transformed_point_01);
-                const distance_02 = calculateDistance(NEZ[0], transformed_point_02);
+        //         const distance_01 = calculateDistance(NEZ[0], transformed_point_01);
+        //         const distance_02 = calculateDistance(NEZ[0], transformed_point_02);
 
-                let correctedData, mergedData;
-                if (distance_01 <= distance_02) {
-                    const panning = numeric.sub(transformed_point_01, transformed_point_02);
-                    correctedData = numeric.add(xyz_2, panning);
-                    mergedData = numeric.concat([xyz_1, correctedData]);
-                } else {
-                    const panning = numeric.sub(transformed_point_02, transformed_point_01);
-                    correctedData = numeric.add(xyz_1, panning);
-                    mergedData = numeric.concat([correctedData, xyz_2]);
-                }
+        //         let correctedData, mergedData;
+        //         if (distance_01 <= distance_02) {
+        //             const panning = numeric.sub(transformed_point_01, transformed_point_02);
+        //             correctedData = numeric.add(xyz_2, panning);
+        //             mergedData = numeric.concat([xyz_1, correctedData]);
+        //         } else {
+        //             const panning = numeric.sub(transformed_point_02, transformed_point_01);
+        //             correctedData = numeric.add(xyz_1, panning);
+        //             mergedData = numeric.concat([correctedData, xyz_2]);
+        //         }
 
-                downloadPCD(generatePCD(correctedData), 'corrected_data.pcd');
-                downloadPCD(generatePCD(mergedData), 'merged_data.pcd');
-            }).catch(error => {
-                console.error('Error processing files:', error);
-            });
-        }
+        //         downloadPCD(generatePCD(correctedData), 'corrected_data.pcd');
+        //         downloadPCD(generatePCD(mergedData), 'merged_data.pcd');
+        //     }).catch(error => {
+        //         console.error('Error processing files:', error);
+        //     });
+        // }
 
         // 读取文本文件
         function readTextFile(file) {
@@ -592,27 +604,63 @@ DATA ascii
                 const transformed_point_01 = transformPoint(lidar_01[0], matrix_1, x_panning, y_panning);
                 const transformed_point_02 = transformPoint(lidar_02[0], matrix_2, x_panning, y_panning);
 
-                const distance_01 = calculateDistance(NEZ[0], transformed_point_01);
-                const distance_02 = calculateDistance(NEZ[0], transformed_point_02);
+                const error_1 = numeric.sub(NEZ[0], transformed_point_01);
+                const error_2 = numeric.sub(NEZ[0], transformed_point_02);
+                const avgError = numeric.div(numeric.add(numeric.abs(error_1), numeric.abs(error_2)), 2);
 
-                let correctedData, mergedData;
-                if (distance_01 <= distance_02) {
-                    const panning = numeric.sub(transformed_point_01, transformed_point_02);
-                    correctedData = xyz_2.map(point => numeric.add(point, panning));
-                    mergedData = [...xyz_1, ...correctedData];
-                    savePCDFile(createPCDContent(correctedData), 'Corrected_data_s2.pcd');
-                } else {
-                    const panning = numeric.sub(transformed_point_02, transformed_point_01);
-                    correctedData = xyz_1.map(point => numeric.add(point, panning));
-                    mergedData = [...correctedData, ...xyz_2];
-                    savePCDFile(createPCDContent(correctedData), 'Corrected_data_s1.pcd');
-                }
+                // Update the error display on the webpage
+                const errorDisplayElement = document.getElementById('errorDisplay');
+                errorDisplayElement.innerHTML = `平均坐标误差绝对值为: (${avgError[0].toFixed(4)}, ${avgError[1].toFixed(4)}, ${avgError[2].toFixed(4)})`;
 
-                savePCDFile(createPCDContent(mergedData), 'merge.pcd');
+                const corrected_xyz_1 = xyz_1.map(point => numeric.add(point, error_1));
+                const corrected_xyz_2 = xyz_2.map(point => numeric.add(point, error_2));
+
+                savePCDFile(createPCDContent(corrected_xyz_1), 'Corrected_data_s1.pcd');
+                savePCDFile(createPCDContent(corrected_xyz_2), 'Corrected_data_s2.pcd');
+
+                const mergedData = [...corrected_xyz_1, ...corrected_xyz_2];
+                savePCDFile(createPCDContent(mergedData), 'Corrected_merge_pointcloud.pcd');
+
             } catch (error) {
-                console.error('处理文件时出错:', error);
+                console.error('Error processing files:', error);
+
+                const errorDisplayElement = document.getElementById('errorDisplay');
+                errorDisplayElement.innerHTML = '处理文件时发生错误，请检查您的输入并重试。';
             }
         }
+
+        document.getElementById('errorCorrectionForm2').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const errorCorrectionFile = document.getElementById('errorCorrectionFile').files[0];
+            const pcdFile1 = document.getElementById('pcdFile1').files[0];
+            const pcdFile2 = document.getElementById('pcdFile2').files[0];
+            const matrix1File = document.getElementById('matrix1File').files[0];
+            const matrix2File = document.getElementById('matrix2File').files[0];
+
+            if (errorCorrectionFile && pcdFile1 && pcdFile2 && matrix1File && matrix2File) {
+                if (xPanning !== undefined && yPanning !== undefined) {
+                    processErrorCorrection(errorCorrectionFile, pcdFile1, pcdFile2, matrix1File, matrix2File, xPanning, yPanning);
+                } else {
+                    alert('请先在计算刚性变换矩阵表单中输入 X 和 Y 平移参数。');
+                }
+            }
+        });
+
+        // 动态设置 iframe 的 src
+        function setIframeSource() {
+            const iframe = document.getElementById('dynamicIframe');
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                // 本地环境
+                iframe.src = 'http://172.168.1.10:8675/';
+            } else {
+                // GitHub Pages 或其他在线环境
+                iframe.src = 'http://192.168.1.10:8675'; // 公共可访问的 URL
+            }
+        }
+
+        // 页面加载完成后设置 iframe 源
+        window.onload = setIframeSource;
+
 
     </script>
 </body>
